@@ -1,0 +1,200 @@
+<!--
+  THIS EXAMPLE WAS DOWNLOADED FROM https://echarts.apache.org/examples/zh/editor.html?c=graph-webkit-dep
+-->
+<!DOCTYPE html>
+<html lang="zh-CN" style="height: 100%">
+<head>
+  <meta charset="utf-8">
+  <title>Group 10</title>
+  <!-- <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/jquery"></script> -->
+  <script type="text/javascript" src="./js/jquery-3.6.0.js"></script>
+  <script type="text/javascript" src="./js/echarts.min.js"></script>
+  <script type="text/javascript" src="./js/theme.js"></script>
+  <script type="text/javascript" src="./js/draw_subgraph.js"></script>
+  <script type="text/javascript" src="./js/draw_charts.js"></script>
+  <script type="text/javascript" src="./js/draw_link.js"></script>
+  <script type="text/javascript" src="./js/draw_table.js"></script>
+
+  <style>
+    body {
+      background-color: rgba(91,92,110,1);
+      overflow: hidden;
+    }
+    select {
+      background: rgba(0,0,0,0);
+      width: 160px;
+      height: 22px;
+      font-size: 10;
+      padding-left: 2.5px;
+      color: #cccccc;
+      border: 1.4px #cccccc solid;
+      border-radius: 5px;
+    }
+    option {
+      font-size: 10;
+      color: rgba(91,92,110,1);
+      border-radius: 5px;
+    }
+    table {
+      /* border-style:hidden; */
+      padding-left: 30px;
+      /* padding-top: 5%; */
+    }
+    .title {
+      /* border-style: solid; */
+      /* border-width: 1.4px;
+      border-color: #cccccc; */
+      text-align: center;
+      color: #ffff;
+      /* width: 12.1vw; */
+      height: 4vh;
+    }
+    .grid1 {
+      text-align: center;
+      color: #cccccc;
+      width: 9vw;
+      height: 3vh;
+      word-wrap:break-word;
+      word-break:break-all;
+      font-size:14px;
+    }
+    .grid2 {
+      text-align: center;
+      color: #cccccc;
+      width: 18vw;
+      height: 3vh;
+      word-wrap:break-word;
+      word-break:break-all;
+      font-size:14px;
+    }
+    .grid3 {
+      text-align: center;
+      color: #cccccc;
+      width: 11vw;
+      height: 3vh;
+      word-wrap:break-word;
+      word-break:break-all;
+      font-size:14px;
+    }
+    /* .table_header {
+      background-color: #ffffff;
+    } */
+    /* td:hover {
+      background-color: darkgray;
+    } */
+  </style>
+</head>
+<body style="height: 98.5%; margin: 10px;">
+  <div style="position: absolute; left: 8%; top: 2.2%; z-index: 99999;">
+    <select onchange="change()">
+      <option value ="over">Overall View</option>
+      <option value ="core">Core Property View</option>
+      <option value ="dirty">Industry View</option>
+    </select>
+  </div>
+
+  <div id="force-container" style="height: 100%; width: 57%; z-index: 99;"></div>
+  <div id="type-container" style="height: 32%; width: 45%; left: 55%; top:0%; position: absolute;"></div>
+  <div id="dark-container" style="height: 30%; width: 45%; left: 55%; top:35%; position: absolute;"></div>
+  <div id="link-container" style="height: 34%; width: 45%; left: 55%; top:62%; position: absolute;"></div>
+
+  <div id="table-background" style="height: 34%; width: 41%; left: 55%; top:62%; position: absolute;
+  background: rgba(91,92,110,1); z-index: 999;"></div>
+  <div id="table-container" style="height: 32%; width: 41%; left: 55%; top:64.5%; position: absolute;
+  background: rgba(91,92,110,1); z-index: 99999; overflow: auto;">
+    <table id="table" cellspacing="0">
+      <tr id="header" class="table_header">
+          <td class="title"><b>Whois Type</b></td>
+          <td class="title"><b>Whois ID</b></td>
+          <td class="title"><b>Whois Content</b></td>
+      </tr>
+      <tr id="init_data">
+          <td class="grid1">N/A</td>
+          <td class="grid2">N/A</td>
+          <td class="grid3">N/A</td>
+      <tr>
+  </table>
+  </div>
+
+  <script type="text/javascript">
+    var group_num = '10'
+
+    var data_path = './data/subgraph'+group_num+'.json'
+    var core_data_path = './data/core'+group_num+'.json'
+    var link_data_path = './data/link'+group_num+'.json'
+    var core_link_data_path = './data/core_link'+group_num+'.json'
+    var dirty_data_path = './data/dirty_node'+group_num+'.json'
+    var info_data_path = "./data/group_member_list/group_info"+group_num+".json"
+    // var dict = {'A': 357, 'B': 107, 'C': 6, 'D': 0, 'E': 0, 'F': 0, 'G': 12, 'H': 0, 'I': 4}
+    var group = [{'A': 9, 'B': 9, 'C': 4, 'D': 0, 'E': 12, 'F': 0, 'G': 5, 'H': 1, 'I': 0},
+      {'A': 10, 'B': 10, 'C': 1, 'D': 0, 'E': 0, 'F': 0, 'G': 0, 'H': 0, 'I': 0},
+      {'A': 26, 'B': 9, 'C': 1, 'D': 0, 'E': 0, 'F': 0, 'G': 2, 'H': 0, 'I': 0},
+      {'A': 357, 'B': 107, 'C': 6, 'D': 0, 'E': 0, 'F': 0, 'G': 12, 'H': 0, 'I': 4},
+      {'A': 184, 'B': 367, 'C': 5, 'D': 0, 'E': 0, 'F': 0, 'G': 10, 'H': 0, 'I': 4},
+
+      {'A': 92, 'B': 150, 'C': 93, 'D': 0, 'E': 92, 'F': 0, 'G': 1, 'H': 0, 'I': 0},
+      {'A': 40, 'B': 135, 'C': 29, 'D': 0, 'E': 0, 'F': 1, 'G': 2, 'H': 0, 'I': 0},
+      {'A': 2, 'B': 65, 'C': 0, 'D': 0, 'E': 0, 'F': 0, 'G': 2, 'H': 0, 'I': 0},
+      {'A': 2, 'B': 66, 'C': 3, 'D': 3, 'E': 0, 'F': 0, 'G': 2, 'H': 1, 'I': 2},
+      {'A': 262, 'B': 260, 'C': 31, 'D': 0, 'E': 9, 'F': 0, 'G': 24, 'H': 0, 'I': 9}]
+    
+    var force_list = [[10, 70, 0.35],
+    [10, 40, 0.3],
+    [10, 50, 0.45],
+    [10, 7, 0.45],
+    [10, 9, 0.45],
+
+    [10, 70, 0.27],
+    [10, 31, 0.45],
+    [10, 80, 0.13],
+    [10, 80, 0.13],
+    [10, 30, 0.4],
+    ]
+    var force_strength = force_list[group_num-1]
+
+    var link_list = [[10, 100, 0.15],
+    [10, 70, 0.2],
+    [10, 3.5, 0.2],
+    [10, 20, 0.4],
+    [10, 8, 0.2],
+
+    [10, 25, 0.3],
+    [10, 70, 0.2],
+    [10, 70, 0.15],
+    [10, 80, 0.2],
+    [10, 25, 0.2],
+    ]
+    var link_strength = link_list[group_num-1]
+    
+    close_table()
+    draw_subgraph(data_path, force_strength)
+    draw_pie(data_path)
+    draw_bar(group[group_num-1])
+    draw_link(link_data_path, link_strength)
+
+    function change(){
+        // 获取参数
+        var vs = $('select option:selected').val();
+        // 触发对应的函数
+        if (vs=="over"){
+          draw_subgraph(data_path, force_strength)
+          draw_pie(data_path)
+          draw_link(link_data_path, link_strength)
+          close_table()
+        }
+        if (vs=="core"){
+          draw_core(core_data_path, force_strength)
+          draw_core_link(core_link_data_path, link_strength)
+          draw_pie_core(core_data_path)
+          close_table()
+        }
+        if (vs=="dirty"){
+          draw_dirty(dirty_data_path, force_strength)
+          draw_pie(data_path)
+          create_table(info_data_path)
+          open_table()
+        }
+    }
+  </script>
+</body>
+</html>

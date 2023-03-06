@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="utf-8">
+  <title>黑灰产网络资产图谱</title>
+
+  <script src="https://d3js.org/d3.v4.js"></script>
+  <script src="https://d3js.org/d3-scale-chromatic.v1.min.js"></script>
+  <script type="text/javascript" src="./js/jquery-3.6.0.js"></script>
+  <script type="text/javascript" src="./js/echarts.min.js"></script>
+  <script type="text/javascript" src="./js/theme.js"></script>
+  <script type="text/javascript" src="./js/draw_charts.js"></script>
+
+  <style>
+    body {
+      background-color: rgba(91, 92, 110, 1);
+      overflow: hidden;
+    }
+
+    .box {
+      width: 1400px;
+      height: 700px;
+      margin: 0 auto;
+    }
+
+    .title {
+      width: 100%;
+      height: 5%;
+      position: absolute;
+      text-align: center;
+      color: #f9f7f7;
+      font-size: 24px;
+      font-weight: bold
+    }
+
+    .overall {
+      width: 80px;
+      height: 30px;
+      left: 90%;
+      top: 5%;
+      position: absolute;
+      border-width: 0px;
+      border-radius: 3px;
+      cursor: pointer;
+      outline: none;
+      font-family: Microsoft YaHei;
+      font-size: 14px;
+    }
+
+    #my_dataviz {
+      width: 50%;
+      height: 100%;
+      left: 0%;
+      top: 10%;
+      position: absolute;
+      /* background-color: pink; */
+      margin: 0 auto;
+    }
+
+    .tooltip {
+      height: 10%;
+      left: 10%;
+      top: 85%;
+      position: absolute;
+      margin-left: 10px;
+      color: white;
+      font-size: 20px;
+    }
+
+    button {
+      float: left;
+      width: 30%;
+      margin-top: 5px;
+      margin-bottom: 5px;
+      margin-right: 10px;
+      margin-left: 10px;
+
+    }
+  </style>
+</head>
+
+<body>
+  <!-- 布局 -->
+  <div class="box">
+    <!-- 标题 -->
+    <div class="title">Network Black Market Visualization</div>
+    <!-- 默认显示总览信息，悬停离开气泡后会停留在子图信息中，点击按钮可会到总览信息 -->
+    <button class="overall" onclick="showOverall()">Overall</button>
+    <!-- 气泡图 -->
+    <div id="my_dataviz"></div>
+    <!-- 结点分布-->
+    <div id="node_container"
+      style="height: 40%; width: 45%; left: 54%; top:10%; position: absolute; background-color: pink;"></div>
+    <!-- 脏Domain总体分布-->
+    <div id="domain_container"
+      style="height: 40%; width: 45%; left: 54%; top:58%; position: absolute; background-color: pink;"></div>
+  </div>
+
+
+  <script>
+    var total_domain_num = 2000864
+    var clean_domain_num = 1672708
+    var total_nodes_distribution = { 'Domain': 2000864, 'IP': 207878, 'Cert': 131093, 'ASN': 367, 'Whois_Name': 18646, 'Whois_Email': 3936, 'Whois_Phone': 2361, 'IP_C': 6413 }
+    var dirty_domain_distribution = { 'Erotic': 151385, 'Gambling': 176273, 'Scam': 9931, 'Drug': 26, 'Gun': 392, 'Hacker': 57, 'Illegal Trade': 12641, 'Illegal Payment': 413, 'Other': 3871 }
+
+    var subgraph_nodes_distribution = [
+      { 'Domain': 336, 'Cert': 4, 'Whois_Phone': 2, 'IP': 7, 'IP_CIDR': 3, 'Whois_Email': 2, 'ASN': 2, 'Whois_Name': 2 },
+      { 'Domain': 547, 'IP_CIDR': 6, 'Cert': 9, 'IP': 8, 'ASN': 3 },
+      { 'Cert': 72, 'IP': 215, 'Domain': 155, 'ASN': 12, 'IP_CIDR': 90, 'Whois_Phone': 5, 'Whois_Name': 2, 'Whois_Email': 1 },
+      { 'Domain': 4442, 'IP_CIDR': 35, 'Cert': 35, 'ASN': 18, 'Whois_Name': 8, 'IP': 84, 'Whois_Phone': 13, 'Whois_Email': 6 },
+      { 'Domain': 3015, 'IP': 98, 'Whois_Email': 15, 'IP_CIDR': 53, 'Whois_Name': 29, 'Cert': 24, 'Whois_Phone': 17, 'ASN': 22 },
+      { 'IP': 50, 'Domain': 211, 'Cert': 3, 'Whois_Name': 2 },
+      { 'Domain': 825, 'Whois_Name': 5, 'Cert': 53, 'Whois_Phone': 4, 'Whois_Email': 3, 'IP': 1 },
+      { 'Domain': 98, 'IP': 14, 'Whois_Phone': 2, 'Cert': 1, 'Whois_Email': 2, 'Whois_Name': 2 },
+      { 'Domain': 113, 'Whois_Name': 2, 'IP': 4, 'Cert': 4, 'Whois_Email': 1 },
+      { 'Domain': 725, 'IP': 22, 'Whois_Name': 14, 'Whois_Phone': 9, 'Cert': 1, 'Whois_Email': 3 }
+    ]
+
+    var subgraph_dirty_domain_distribution = [
+      { 'Gun': 12, 'Gambling': 10, 'Erotic': 9, 'Illegal Trade': 5, 'Scam': 4, 'Illegal Payment': 1 },
+      { 'Erotic': 10, 'Gambling': 10, 'Scam': 1 },
+      { 'Erotic': 29, 'Gambling': 9, 'Illegal Trade': 2, 'Scam': 1, 'Other': 1 },
+      { 'Erotic': 360, 'Gambling': 113, 'Illegal Trade': 12, 'Scam': 7, 'Other': 4 },
+      { 'Gambling': 370, 'Erotic': 185, 'Illegal Trade': 10, 'Scam': 5, 'Other': 4 },
+      { 'Gambling': 150, 'Scam': 93, 'Gun': 92, 'Erotic': 92, 'Illegal Trade': 1 },
+      { 'Gambling': 135, 'Erotic': 40, 'Scam': 29, 'Illegal Trade': 2, 'Hacker': 1 },
+      { 'Gambling': 65, 'Illegal Trade': 2, 'Erotic': 2 },
+      { 'Gambling': 66, 'Scam': 3, 'Drug': 3, 'Other': 2, 'Illegal Trade': 2, 'Erotic': 2, 'Illegal Payment': 1 },
+      { 'Erotic': 262, 'Gambling': 260, 'Scam': 31, 'Illegal Trade': 24, 'Other': 9, 'Gun': 9 }
+    ]
+
+
+    // 默认绘制总览的结点分布和脏Domain分布
+    draw_pie_nodes_total(total_nodes_distribution)
+    draw_pie_domain_total(dirty_domain_distribution)
+
+
+    // 气泡图数据
+    var data = [
+      { id: 1, node: 358, link: 527, industry: ['Gun', 'Gambling', 'Erotic', 'Illegal Trade', 'Scam', 'Illegal Payment'] },
+      { id: 2, node: 573, link: 1563, industry: ['Erotic', 'Gambling', 'Scam'] },
+      { id: 3, node: 552, link: 706, industry: ['Erotic', 'Gambling', 'Illegal Trade', 'Scam', 'Other'] },
+      { id: 4, node: 4641, link: 5012, industry: ['Erotic', 'Gambling', 'Illegal Trade', 'Scam', 'Other'] },
+      { id: 5, node: 3273, link: 4800, industry: ['Gambling', 'Erotic', 'Illegal Trade', 'Scam', 'Other'] },
+      { id: 6, node: 266, link: 498, industry: ['Gambling', 'Scam', 'Gun', 'Erotic', 'Illegal Trade'] },
+      { id: 7, node: 891, link: 1067, industry: ['Gambling', 'Erotic', 'Scam', 'Illegal Trade', 'Hacker'] },
+      { id: 8, node: 119, link: 207, industry: ['Gambling', 'Illegal Trade', 'Erotic'] },
+      { id: 9, node: 124, link: 130, industry: ['Gambling', 'Scam', 'Drug', 'Other', 'Illegal Trade', 'Erotic', 'Illegal Payment'] },
+      { id: 10, node: 774, link: 947, industry: ['Erotic', 'Gambling', 'Scam', 'Illegal Trade', 'Other', 'Gun'] }
+    ]
+    function myFunction() {
+      // 跳转页面的id
+      console.log($(this).attr("id"))
+      window.open("./subgraph/index" + $(this).attr("id") + ".html")
+    }
+
+    // set the dimensions and margins of the graph
+    var width = document.body.clientWidth * 0.5
+    var height = document.body.clientHeight * 0.8
+
+    // append the svg object to the body of the page
+    var svg = d3.select("#my_dataviz")
+      .append("svg")
+      .attr("width", width)
+      .attr("height", height)
+
+    console.log(data)
+
+    // 着色 10 个团伙
+    var color = d3.scaleOrdinal()
+      .domain([1, 2, 3, 4, 5, 6, 7, 8, 9, 10])
+      .range(["#516b91", "#59c4e6", "#edafda", "#93b7e3", "#a5e7f0", "#cbb0e3", "#9b8bba", "#e098c7", "#8fd3e8", "#71669e", "#cc70af", "#7cb4cc"]);
+
+    // 团队结点数量比例尺
+    var size = d3.scaleSqrt()
+      .domain([100, 5000])
+      .range([50, 120])
+
+    // create a tooltip
+    var Tooltip = d3.select("body")
+      .append("div")
+      .style("opacity", 0)
+      .attr("class", "tooltip")
+      .style("font-size", "16px")
+
+
+    var mouseover = function (d) {
+      console.log($(this).attr("id"))
+      d3.select(this)
+        .style("fill-opacity", 1)
+
+      Tooltip
+        .style("opacity", 1)
+
+      draw_pie_nodes_subgraph(subgraph_nodes_distribution[$(this).attr("id") - 1])
+      draw_pie_domain_subgraph(subgraph_dirty_domain_distribution[$(this).attr("id") - 1])
+    }
+    var mousemove = function (d) {
+      Tooltip
+        .html("<b>" + "Group " + d.id + "</b>" + "<br>" +
+          "Node Number: " + d.node + "<br>" +
+          "Link Number: " + d.link + "<br>" +
+          "Industries Involved: " + d.industry.join(', '))
+    }
+    var mouseleave = function (d) {
+      d3.select(this)
+        .style("fill-opacity", 0.5)
+
+      Tooltip
+        .style("opacity", 0)
+    }
+
+    // Initialize the circle: all located at the center of the svg area
+    var node = svg.append("g")
+      .selectAll("circle")
+      .data(data)
+      .enter()
+      .append("circle")
+      .attr("class", "node")
+      .attr("r", function (d) { return size(d.node) })
+      .attr("cx", width / 2)
+      .attr("cy", height / 2)
+      .attr("id", function (d) {
+        return d.id;
+      })
+      .style("fill", function (d) { return color(d.id) })
+      .style("fill-opacity", 0.5)
+      .on("mouseover", mouseover)
+      .on("mousemove", mousemove)
+      .on("mouseleave", mouseleave)
+      .on("click", myFunction)
+      .call(d3.drag() // call specific function when circle is dragged
+        .on("start", dragstarted)
+        .on("drag", dragged)
+        .on("end", dragended));
+
+    // Features of the forces applied to the nodes:
+    var simulation = d3.forceSimulation()
+      .force("forceX", d3.forceX().strength(.1).x(width * .5))
+      .force("forceY", d3.forceY().strength(.1).y(height * .5))
+      .force("center", d3.forceCenter().x(width / 2).y(height / 2)) // Attraction to the center of the svg area
+      .force("charge", d3.forceManyBody().strength(.1)) // Nodes are attracted one each other of value is > 0
+      .force("collide", d3.forceCollide().strength(.5).radius(function (d) { return (size(d.node) + 3) }).iterations(1)) // Force that avoids circle overlapping
+
+    // Apply these forces to the nodes and update their positions.
+    // Once the force algorithm is happy with positions ('alpha' value is low enough), simulations will stop.
+    simulation
+      .nodes(data)
+      .on("tick", function (d) {
+        node
+          .attr("cx", function (d) { return d.x; })
+          .attr("cy", function (d) { return d.y; })
+      });
+
+    // What happens when a circle is dragged?
+    function dragstarted(d) {
+      if (!d3.event.active) simulation.alphaTarget(.03).restart();
+      d.fx = d.x;
+      d.fy = d.y;
+    }
+    function dragged(d) {
+      d.fx = d3.event.x;
+      d.fy = d3.event.y;
+    }
+    function dragended(d) {
+      if (!d3.event.active) simulation.alphaTarget(.03);
+      d.fx = null;
+      d.fy = null;
+    }
+
+
+  </script>
+</body>
+
+</html>
