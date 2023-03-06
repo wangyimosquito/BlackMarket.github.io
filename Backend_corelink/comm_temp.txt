@@ -1,0 +1,122 @@
+# 该文件是一些试验性的查询语句以及过程记录
+
+
+MATCH p=(d1:Domain)-[r1*0..3]->(d2:Domain)-[]->(c1:Cert)-[]-(d3:Domain)-[*0..3]->(d4:Domain)-[]->(i1:IP)-[]-(d5:Domain)-[*0..3]->(d6:Domain)-[]->(c2:Cert)    
+
+RETURN p limit 100
+
+MATCH p=(d1:Domain)-[r1:r_*0..3]-(d2)
+where 
+
+
+MATCH p=(cert_start:Cert)-[:r_cert_chain*0..1]-(cert_end:Cert)<-[c2d:r_cert]-(d1:Domain)-[r1:r_cname|r_request_jump|r_subdomain *0..3]-(d2:Domain)-[:r_dns_a]->(ip:IP)<-[?]-(:Domain) return p limit 10000
+
+
+
+F团伙:
+    ip: id: IP_534173666e76c48b4657823a67d67f4c2fefb6837563f010b2f6b29dbb6e4920
+    尝试1:MATCH p=(cert_start:Cert)-[:r_cert_chain*0..1]-(cert_end:Cert)<-[c2d:r_cert]-(d_start:Domain)-[:r_request_jump|r_subdomain *0..1]-(d1:Domain)-[:r_request_jump|r_subdomain *0..1]-(d2:Domain)-[:r_request_jump|r_subdomain *0..1]-(d_end:Domain)-[:r_dns_a]->(ip:IP) where (ip.id='IP_534173666e76c48b4657823a67d67f4c2fefb6837563f010b2f6b29dbb6e4920') and (cert_end.name<>'321294f7c6') and (d1.industry<>'[]' or d2.industry<>'[]' or d_start.industry<>'[]' or d_end.industry<>'[]')  return p limit 3000
+        没反应
+
+
+    尝试2：MATCH p=(ip:IP)<-[:r_dns_a]-(d_start:Domain)-[:r_request_jump|r_subdomain *0..1]-(d1:Domain)-[:r_request_jump|r_subdomain *0..1]-(d2:Domain)-[:r_request_jump|r_subdomain *0..1]-(d_end:Domain)-[d2c:r_cert]->(cert_start:Cert)-[:r_cert_chain*0..1]-(cert_end:Cert)  
+            where (ip.id='IP_534173666e76c48b4657823a67d67f4c2fefb6837563f010b2f6b29dbb6e4920') and (cert_end.name<>'321294f7c6') and (d1.industry<>'[]' or d2.industry<>'[]' or d_start.industry<>'[]' or d_end.industry<>'[]')  
+            return p limit 3000
+           写成一行 "MATCH p=(ip:IP)<-[:r_dns_a]-(d_start:Domain)-[:r_request_jump|r_subdomain *0..1]-(d1:Domain)-[:r_request_jump|r_subdomain *0..1]-(d2:Domain)-[:r_request_jump|r_subdomain *0..1]-(d_end:Domain)-[d2c:r_cert]->(cert_start:Cert)-[:r_cert_chain*0..1]-(cert_end:Cert) where (ip.id='IP_534173666e76c48b4657823a67d67f4c2fefb6837563f010b2f6b29dbb6e4920') and (cert_end.name<>'321294f7c6') and (d1.industry<>'[]' or d2.industry<>'[]' or d_start.industry<>'[]' or d_end.industry<>'[]') return p limit 3000"
+        加载同样很慢 用时122秒没结果 no record
+
+    尝试3：MATCH p=(ip:IP{ip:'IP_534173666e76c48b4657823a67d67f4c2fefb6837563f010b2f6b29dbb6e4920'})<-[:r_dns_a]-(d_start:Domain)-[:r_request_jump|r_subdomain *0..1]-(d1:Domain)-[:r_request_jump|r_subdomain *0..1]-(d2:Domain)-[:r_request_jump|r_subdomain *0..1]-(d_end:Domain)-[d2c:r_cert]->(cert_start:Cert)-[:r_cert_chain*0..1]-(cert_end:Cert) where (cert_end.name<>'321294f7c6') and (d1.industry<>'[]' or d2.industry<>'[]' or d_start.industry<>'[]' or d_end.industry<>'[]') return p limit 3000
+    用时108秒，也没结果
+
+    破案了，之前用的全是ip: 应该用id
+
+    尝试4： MATCH p=(ip:IP{id:'IP_534173666e76c48b4657823a67d67f4c2fefb6837563f010b2f6b29dbb6e4920'})<-[:r_dns_a]-(d_start:Domain)-[:r_request_jump|r_subdomain *0..3]-(d_end:Domain) optional match (d_end:Domain)-[d2c:r_cert]->(cert_start:Cert)-[:r_cert_chain*0..1]-(cert_end:Cert) return p limit 3000
+    有看起来很孤立的图
+
+    尝试5：MATCH p=(ip:IP{id:'IP_534173666e76c48b4657823a67d67f4c2fefb6837563f010b2f6b29dbb6e4920'})<-[:r_dns_a]-(d_start:Domain)-[:r_request_jump|r_subdomain *0..3]-(d_end:Domain)-[d2c:r_cert]->(cert_start:Cert)-[:r_cert_chain*0..1]-(cert_end:Cert) where (cert_end.name<>'321294f7c6') return p limit 3000
+        没有结果
+
+        尝试改进，
+
+
+5.28:
+ 尝试找f团伙 ip=IP_534173666e76c48b4657823a67d67f4c2fefb6837563f010b2f6b29dbb6e4920
+ match p=(ip:IP)-[]-() where ip.id='IP_534173666e76c48b4657823a67d67f4c2fefb6837563f010b2f6b29dbb6e4920' return p 结果很乱 要缩减
+
+ MATCH p=(ip:IP)<-[:r_dns_a]-(d_start:Domain)-[:r_request_jump|r_subdomain *0..3]-(d_end:Domain)-[d2c:r_cert]->(cert_start:Cert)-[:r_cert_chain*0..1]-(cert_end:Cert) where (cert_end.name<>'321294f7c6') and (ip.id='IP_534173666e76c48b4657823a67d67f4c2fefb6837563f010b2f6b29dbb6e4920') return p limit 3000 无结果 原因应该是没有cert 改为optional match
+
+ MATCH p=(ip:IP)<-[:r_dns_a]-(d_start:Domain)-[:r_request_jump|r_subdomain *0..3]-(d_end:Domain)
+ optional match (d_end:Domain)-[d2c:r_cert]->(cert_start:Cert)-[:r_cert_chain*0..1]-(cert_end:Cert)
+  where (cert_end.name<>'321294f7c6') and (ip.id='IP_534173666e76c48b4657823a67d67f4c2fefb6837563f010b2f6b29dbb6e4920') return p limit 3000 shibai
+
+  MATCH p=(ip:IP{id:'IP_534173666e76c48b4657823a67d67f4c2fefb6837563f010b2f6b29dbb6e4920'})<-[:r_dns_a]-(d_start:Domain)-[:r_request_jump|r_subdomain *0..3]-(d_end:Domain)
+ optional match (d_end:Domain)-[d2c:r_cert]->(cert_start:Cert)-[:r_cert_chain*0..1]-(cert_end:Cert)
+  where (cert_end.name<>'321294f7c6') return p limit 3000
+
+
+  不行
+
+  begin with：
+  id: Domain_7c86fd8a18d69fa65db4b4e20961203b39e45f4714defd7de785960bde0f6126 只链接了ip：IP_180f4cfc57f145f15d5a6d2ec30f4d3c199a3d0faa890f249876711a2cd37087
+
+  MATCH p=(ip:IP{id:'IP_180f4cfc57f145f15d5a6d2ec30f4d3c199a3d0faa890f249876711a2cd37087'})<-[:r_dns_a]-(d_start:Domain)-[:r_request_jump|r_subdomain *0..3]-(d_end:Domain)
+ optional match p1=(d_end:Domain)-[d2c:r_cert]->(cert_start:Cert)-[:r_cert_chain*0..1]-(cert_end:Cert)
+  where (cert_end.name<>'321294f7c6') return p,p1 limit 3000 只有一个球
+
+  id: IP_6acab66245718783adbe872ed865728ac828f4666834336e41ac3878e8cf1836
+
+  MATCH p=(ip:IP{id:'IP_6acab66245718783adbe872ed865728ac828f4666834336e41ac3878e8cf1836'})<-[:r_dns_a]-(d_start:Domain)-[:r_request_jump|r_subdomain *0..3]-(d_end:Domain)-[d2c:r_cert]->(cert_start:Cert)-[:r_cert_chain*0..1]-(cert_end:Cert)
+  where (cert_end.name<>'fe794a69ea') and (d_end.industry<>'[]')return p limit 3000
+
+  MATCH p=(ip:IP{id:'IP_6acab66245718783adbe872ed865728ac828f4666834336e41ac3878e8cf1836'})<-[:r_dns_a]-(d_start:Domain)-[:r_request_jump|r_subdomain *0..1]-(d1:Domain)-[:r_request_jump|r_subdomain *0..1]-(d2:Domain)-[:r_request_jump|r_subdomain *0..1]-(d_end:Domain)-[d2c:r_cert]->(cert_start:Cert)-[:r_cert_chain*0..1]-(cert_end:Cert)--(d_others:Domain)-[:r_request_jump|r_subdomain *0..3]-(d_others_end:Domain)   where (cert_end.name<>'fe794a69ea') and (d1.industry<>'[]' or d2.industry<>'[]' or d_start.industry<>'[]' or d_end.industry<>'[]') return p limit 3000
+
+   MATCH p=(ip:IP{id:'IP_6acab66245718783adbe872ed865728ac828f4666834336e41ac3878e8cf1836'})<-[:r_dns_a]-(d_start:Domain)-[:r_request_jump|r_subdomain *0..3]-(d_end:Domain)-[d2c:r_cert]->(cert_start:Cert)-[:r_cert_chain*0..1]-(cert_end:Cert)--(d_others:Domain)-[:r_request_jump|r_subdomain *0..3]-(d_others_end:Domain)   
+   where (cert_end.name<>'fe794a69ea') and (d_end.industry<>'[]')
+   return p limit 3000 
+   结果很小 但是勉强算
+
+   MATCH p=(ip:IP{id:'IP_f3b893d63b901396122829905d32559872ffc2a0063520e11d0b666890497404'})<-[:r_dns_a]-(d_start:Domain)-[:r_request_jump|r_subdomain *0..3]-(d_end:Domain)-[d2c:r_cert]->(cert_start:Cert)-[:r_cert_chain*0..1]-(cert_end:Cert)--(d_others:Domain)-[:r_request_jump|r_subdomain *0..3]-(d_others_end:Domain)
+optional match (d_start)-[:r_whois_name|r_whois_phone|r_whois_email]-(info),(d_end)-[:r_whois_name|r_whois_phone|r_whois_email]-(info2),(d_others)-[:r_whois_name|r_whois_phone|r_whois_email]-(info3),(d_others_end)-[:r_whois_name|r_whois_phone|r_whois_email]-(info4)
+   where (cert_end.name<>'fe794a69ea') and (d_end.industry<>'[]' or d_start.industry<>'[]')
+
+   return p limit 3000 这个存个档 考虑info的情景 太难了
+
+
+Cert_fe794a69eacd63b21245bf4eda826222fc6c5862bebf77aa05459cb308cfd063找这个cert 连的全是G
+
+    MATCH p=(cert_start:Cert)-[:r_cert_chain*0..1]-(cert_end:Cert)<-[c2d:r_cert]-(d_start:Domain)-[:r_request_jump|r_subdomain *0..1]-(d1:Domain)-[:r_request_jump|r_subdomain *0..1]-(d2:Domain)-[:r_request_jump|r_subdomain *0..1]-(d_end:Domain)-[:r_dns_a]->(ip:IP) 
+    
+    where (cert_start.id='Cert_fe794a69eacd63b21245bf4eda826222fc6c5862bebf77aa05459cb308cfd063') and (cert_end.name<>'321294f7c6') and (d1.industry<>'[]' or d2.industry<>'[]' or d_start.industry<>'[]' or d_end.industry<>'[]')  
+    
+    return p limit 3000
+
+    IP_3d2d6d57e02d1af283c148f588dc1ceeffc1d7798160ded07e1943477d6028b4 这个ip很可疑
+
+        MATCH p=(ip:IP{id:'IP_3d2d6d57e02d1af283c148f588dc1ceeffc1d7798160ded07e1943477d6028b4'})<-[:r_dns_a]-(d_start:Domain)-[:r_request_jump|r_subdomain *0..4]-(d_end:Domain)-[d2c:r_cert]->(cert_start:Cert)-[:r_cert_chain*0..2]-(cert_end:Cert)--(d_others:Domain)-[:r_request_jump|r_subdomain *0..4]-(d_others_end:Domain),p2=(d_others_end)-->(someip:IP),p3=(someip)<-[:r_dns_a]-(:Domain)-[:r_request_jump|r_subdomain *0..4]-(:Domain)-[:r_cert]->(:Cert)-[:r_cert_chain*0..1]-(:Cert)--(:Domain)-[:r_request_jump|r_subdomain *0..4]-(:Domain)   
+        where (cert_end.name<>'fe794a69ea') and (d_end.industry<>'[]')
+        return p,p2 limit 3000
+
+        MATCH p=(ip:IP{id:'IP_3d2d6d57e02d1af283c148f588dc1ceeffc1d7798160ded07e1943477d6028b4'})<-[:r_dns_a]-(d_start:Domain)-[:r_request_jump|r_subdomain *0..4]-(d_end:Domain)-[d2c:r_cert]->(cert_start:Cert)-[:r_cert_chain*0..2]-(cert_end:Cert)--(d_others:Domain)-[:r_request_jump|r_subdomain *0..4]-(d_others_end:Domain),p2=(d_others_end)-->(someip:IP)  
+        where (cert_end.name<>'fe794a69ea') and (d_end.industry<>'[]')
+        return p,p2 limit 3000
+
+    MATCH p=(ip:IP{id:'IP_44e642e648fa555970bfd01596dc1b67e65b357e469479b4105fed2758339462'})<-[:r_dns_a]-(d_start:Domain)-[:r_request_jump|r_subdomain *0..4]-(d_end:Domain)-[d2c:r_cert]->(cert_start:Cert)-[:r_cert_chain*0..1]-(cert_end:Cert)--(d_others:Domain)-[:r_request_jump|r_subdomain *0..4]-(d_others_end:Domain)
+where (cert_end.name<>'fe794a69ea') and (d_end.industry<>'[]')
+with p, d_others_end 
+match p2=(d_others_end)-->(someip:IP)--(somed:Domain)-[:r_request_jump|r_subdomain*0..2]-(dsome:Domain) 
+where somed.industry<>'[]'
+
+        
+        return p,p2 limit 3000 规模太小 
+
+
+
+
+    
+IP_91e73ed138ba96ccf7120c2bb384bf8f12a1e37da9f1ab819b96e3ececeae7f1 完成第十个团伙
+yong MATCH p=(ip:IP{id:'IP_44e642e648fa555970bfd01596dc1b67e65b357e469479b4105fed2758339462'})<-[:r_dns_a]-(d_start:Domain)-[:r_request_jump|r_subdomain *0..4]-(d_end:Domain)-[d2c:r_cert|r_whois_name|r_whois_phone|r_whois_email]->(cert_start)-[*0..1]-(cert_end)--(d_others:Domain)-[:r_request_jump|r_subdomain *0..4]-(d_others_end:Domain)
+where (cert_end.name<>'fe794a69ea') and (d_end.industry<>'[]')
+with p, d_others_end 
+match p2=(d_others_end)-->(someip:IP)--(somed:Domain)-[:r_request_jump|r_subdomain*0..3]-(dsome:Domain) 
+where somed.industry<>'[]'
+        return p,p2 limit 3000      748nodes! 第十个团伙已完成

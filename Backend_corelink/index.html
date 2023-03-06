@@ -1,0 +1,35 @@
+<!doctype html>
+<html>
+    <head>
+        <title>Neovis.js Simple Example</title>
+        <style type="text/css">
+            html, body {
+                font: 16pt arial;
+            }
+    
+            #viz {
+                width: 900px;
+                height: 700px;
+                border: 1px solid lightgray;
+                font: 22pt arial;
+            }
+            #input_cmd{
+                width: 80%;
+            }
+        </style>
+        <!-- <script src="https://rawgit.com/neo4j-contrib/neovis.js/master/dist/neovis.js"></script> -->
+        <script src="https://cdn.neo4jlabs.com/neovis.js/v1.5.0/neovis.js"></script>
+        <script src="https://apps.bdimg.com/libs/jquery/2.1.4/jquery.min.js"></script>
+        <script src="myjs.js"></script>
+    </head>
+    <body>
+        <div>
+            <input id="input_cmd" type="text" value="MATCH p=(cert_start:Cert)-[:r_cert_chain*0..1]-(cert_end:Cert)<-[c2d:r_cert]-(d_start:Domain)-[:r_request_jump|r_subdomain *0..1]-(d1:Domain)-[:r_request_jump|r_subdomain *0..1]-(d2:Domain)-[:r_request_jump|r_subdomain *0..1]-(d_end:Domain)-[:r_dns_a]->(ip:IP) where (cert_end.name<>'321294f7c6') and (d1.industry<>'[]' or d2.industry<>'[]' or d_start.industry<>'[]' or d_end.industry<>'[]')  return p limit 3000"/>
+            <button id="input_btn">execute</button>
+            <button id="clear_btn">clear</button>
+            <button id="stable_btn">stable</button>
+        </div>
+        
+        <div id="viz"></div>
+    </body>    
+</html>
