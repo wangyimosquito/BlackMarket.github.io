@@ -1,0 +1,97 @@
+<!--
+  THIS EXAMPLE WAS DOWNLOADED FROM https://echarts.apache.org/examples/zh/editor.html?c=graph-webkit-dep
+-->
+<!DOCTYPE html>
+<html lang="zh-CN" style="height: 100%">
+<head>
+  <meta charset="utf-8">
+  <style>
+    body {
+      background-color: rgba(91,92,110,1);
+    }
+  </style>
+</head>
+<body style="height: 97%; margin: 10px">
+  <div id="force-container" style="height: 100%; width: 60%; z-index: 999;"></div>
+
+  <script type="text/javascript" src="./jquery-3.6.0.js"></script>
+  <script type="text/javascript" src="./echarts.min.js"></script>
+  <script type="text/javascript" src="./theme.js"></script>
+
+  <script type="text/javascript">
+    let theme_obj = theme_purple()
+    var dom = document.getElementById('force-container');
+    echarts.registerTheme('theme_purple', theme_obj)
+    var myChart = echarts.init(dom, 'theme_purple', {
+      renderer: 'canvas',
+      useDirtyRect: false
+    });
+    var app = {};
+    var option;
+
+    myChart.showLoading();
+    myChart.showLoading();
+    $.get('../reduce_subgraph.json', function (webkitDep) {
+      myChart.hideLoading();
+      option = {
+        tooltip: {
+          trigger: 'item',
+          position: 'right',
+          textStyle: {
+            fontSize: 10
+          }
+        },
+        legend: {
+          // data: ['Domain', 'IP', 'Cert', 'Whois_Info', 'IP_Info']
+          // data: ['dirty', 'clean']
+          data: ['Erotic', 'Gambling', 'Illegal Trade', 'Gun', 'Scam', 'Hacker', 'Illegal Payment', 'Drug',  'Other indstry', 'Mixed Industry', 'Clean']
+        },
+        series: [
+          {
+            type: 'graph',
+            layout: 'force',
+            // legendHoverLink : true, //是否启用图例 hover(悬停) 时的联动高亮。
+            // hoverAnimation : true, //是否开启鼠标悬停节点的显示动画
+            // animation: false,
+            label: {
+              show: false,
+              // position: 'right',
+              // formatter: '{b}',
+              // offset: [20, 20],
+              emphasis : {//高亮状态
+                show: false
+              }
+            },
+            draggable: true,
+            data: webkitDep.nodes.map(function (node, idx) {
+              node.id = idx;
+              return node;
+            }),
+            focusNodeAdjacency: true,
+            categories: webkitDep.categories,
+            force: {
+              edgeLength: 10,
+              repulsion: 30,
+              gravity: 0.8,
+              // layoutAnimation : true
+            },
+            edges: webkitDep.links,
+            // symbolSize: function (dataItem) {
+            //   console.log(dataItem*10)
+            //   return dataItem * 20;
+            // }
+            roam: true,
+          }
+        ]
+      };
+      myChart.setOption(option);
+    });
+
+    if (option && typeof option === 'object') {
+      myChart.setOption(option);
+    }
+
+    window.addEventListener('resize', myChart.resize);
+  </script>
+</body>
+</html>
