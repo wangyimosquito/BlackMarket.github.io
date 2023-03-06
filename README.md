@@ -1,2 +1,2 @@
-# InternetBlackMarketGroupIdentification.github.io
+# Black Market.github.io
 Internet Black Market Group Identification Visualization Website
